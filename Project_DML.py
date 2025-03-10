@@ -173,6 +173,15 @@ def delete_contact_by_cid1(user_id):
     cursor.close()
     conn.close()
 
+def decrease_coins_for_chat(cid):
+    conn = mysql.connector.connect(**config)
+    cursor = conn.cursor()
+    SQL_QUERY = f"UPDATE USER SET NUMBER_OF_COINS = NUMBER_OF_COINS - 2 WHERE ID = {cid};"
+    cursor.execute(SQL_QUERY)
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 def insert_purchase_invoice(cid, product_id, credit, price):
     pass
 

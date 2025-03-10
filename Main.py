@@ -108,6 +108,7 @@ message_ids = {
     "successful_purchase_for_another_user"              :   82,
     "nearby_users_search"                               :   83,
     "sign_up_first"                                     :   84,
+    "not_enough_coins"                                  :   85,
 
 
 
@@ -173,8 +174,6 @@ def listener(messages):
     When new messages arrive TeleBot will call this function.
     """
     for m in messages:
-        # print(m.text)
-        # print(m.content_type)
         if m.content_type == 'text':
             # print the sent message to the console
             print(str(m.chat.first_name) + " [" + str(m.chat.id) + "]: " + m.text)
@@ -721,20 +720,20 @@ def personal_id_handler(message):
     personal_id_container.append(user_personal_id)
     if user_cid == "this link does not belong to any user of this bot.":
         bot.copy_message(cid, channel_id, message_ids["unassigned_link"])
-    # elif int(user_cid) == cid:
-    #     user_info = get_user_info_by_cid(cid)
-    #     markup = InlineKeyboardMarkup()
-    #     markup.add(InlineKeyboardButton(keyboardbutton["b9"], callback_data="send_location"))
-    #     markup.add(InlineKeyboardButton(keyboardbutton["b11"], callback_data="show_contacts"), InlineKeyboardButton(keyboardbutton["b10"], callback_data="show_blocked"))
-    #     markup.add(InlineKeyboardButton(keyboardbutton["b12"], callback_data="show_edit_menu"))
-    #     if user_info[4] == "Male":
-    #         text = f"نام: {user_info[1]}\nجنسیت: مرد\nاستان: {user_info[6]}\nسن: {user_info[3]}\nلینک حساب کاربری شما:{user_info[2]}"
-    #         file_id = user_info[5]
-    #         bot.send_photo(cid, file_id, caption=text, reply_markup=markup)
-    #     if user_info[4] == "Female":
-    #         text = f"نام: {user_info[1]}\nجنسیت: زن\nاستان: {user_info[6]}\nسن: {user_info[3]}\nلینک حساب کاربری شما:{user_info[2]}"
-    #         file_id = user_info[5]
-    #         bot.send_photo(cid, file_id, caption=text, reply_markup=markup)
+    elif int(user_cid) == cid:
+        user_info = get_user_info_by_cid(cid)
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton(keyboardbutton["b9"], callback_data="send_location"))
+        markup.add(InlineKeyboardButton(keyboardbutton["b11"], callback_data="show_contacts"), InlineKeyboardButton(keyboardbutton["b10"], callback_data="show_blocked"))
+        markup.add(InlineKeyboardButton(keyboardbutton["b12"], callback_data="show_edit_menu"))
+        if user_info[4] == "Male":
+            text = f"نام: {user_info[1]}\nجنسیت: مرد\nاستان: {user_info[6]}\nسن: {user_info[3]}\nلینک حساب کاربری شما:{user_info[2]}"
+            file_id = user_info[5]
+            bot.send_photo(cid, file_id, caption=text, reply_markup=markup)
+        if user_info[4] == "Female":
+            text = f"نام: {user_info[1]}\nجنسیت: زن\nاستان: {user_info[6]}\nسن: {user_info[3]}\nلینک حساب کاربری شما:{user_info[2]}"
+            file_id = user_info[5]
+            bot.send_photo(cid, file_id, caption=text, reply_markup=markup)
     else:
         existing_cid = get_user_info_by_cid(user_cid)
         markup = InlineKeyboardMarkup()
@@ -747,6 +746,8 @@ def personal_id_handler(message):
                 markup.add(InlineKeyboardButton(keyboardbutton["b69"], callback_data=keyboardbutton["b69"]), InlineKeyboardButton(keyboardbutton["b67"], callback_data=keyboardbutton["b67"]))
             elif user_cid in contacts:
                 markup.add(InlineKeyboardButton(keyboardbutton["b68"], callback_data=keyboardbutton["b68"]), InlineKeyboardButton(keyboardbutton["b70"], callback_data=keyboardbutton["b70"]))
+            else:
+                markup.add(InlineKeyboardButton(keyboardbutton["b67"], callback_data=keyboardbutton["b67"]), InlineKeyboardButton(keyboardbutton["b68"], callback_data=keyboardbutton["b68"]))
         if existing_cid[4] == "Male":
             text = f"نام: {existing_cid[1]}\nجنسیت: مرد\nاستان: {existing_cid[6]}\nسن: {existing_cid[3]}\nلینک حساب کاربری :{existing_cid[2]}"
             file_id = existing_cid[5]
@@ -1267,20 +1268,24 @@ def callback_query_handler(call):
         text = f"{keyboardbutton["b74"]}{target_personal_id}{keyboardbutton["b75"]}"
         bot.edit_message_caption(text, cid, mid, reply_markup=markup)
     elif data == keyboardbutton["b65"]:
-        for i in call.message.caption.split():
-            if i.startswith(":/user"):
-                target_personal_id = i[1:]
-        user_id = get_cid_by_personal_id(target_personal_id)
-        print(user_id)
-        blocked_users_by_cid = get_blocked_users_by_cid(user_id)
-        cid_personal_link = get_personal_id_by_cid(cid)
-        text = f"{keyboardbutton["b71"]}{cid_personal_link}{keyboardbutton["b72"]}"
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton(keyboardbutton["b56"], callback_data="chat_confrimed"), InlineKeyboardButton(keyboardbutton["b57"], callback_data="chat_rejected"))
-        if str(cid) in blocked_users_by_cid:
-            bot.copy_message(cid, channel_id, message_ids["cant_send_message_user_blocked"])
+        number_of_coins = get_coin_numbers_by_cid(cid)
+        if number_of_coins < 2:
+            bot.copy_message(cid, channel_id, message_ids["not_enough_coins"])
         else:
-            bot.send_message(user_id, text, reply_markup=markup)
+            for i in call.message.caption.split():
+                if i.startswith(":/user"):
+                    target_personal_id = i[1:]
+            user_id = get_cid_by_personal_id(target_personal_id)
+            print(user_id)
+            blocked_users_by_cid = get_blocked_users_by_cid(user_id)
+            cid_personal_link = get_personal_id_by_cid(cid)
+            text = f"{keyboardbutton["b71"]}{cid_personal_link}{keyboardbutton["b72"]}"
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton(keyboardbutton["b56"], callback_data="chat_confrimed"), InlineKeyboardButton(keyboardbutton["b57"], callback_data="chat_rejected"))
+            if str(cid) in blocked_users_by_cid:
+                bot.copy_message(cid, channel_id, message_ids["cant_send_message_user_blocked"])
+            else:
+                bot.send_message(user_id, text, reply_markup=markup)
     elif data == keyboardbutton["b66"]:
         user_personal_id = personal_id_container[-1]
         user_id = get_cid_by_personal_id(user_personal_id)
@@ -1362,12 +1367,12 @@ def callback_query_handler(call):
             if i.startswith("/user"):
                 target_personal_id = i
         user_id = get_cid_by_personal_id(target_personal_id)
-        print(user_id)
         active_chats[cid] = int(user_id)
         active_chats[int(user_id)] = cid
         bot.delete_message(cid, mid, 2)
         bot.copy_message(cid, channel_id, message_ids["connected_users"], reply_markup=markup)
         bot.copy_message(user_id, channel_id, message_ids["connected_users"], reply_markup=markup)
+        decrease_coins_for_chat(user_id)
     elif data == "chat_rejected":
         pass
     elif data == "purchase_confirmed_for_another_user":
